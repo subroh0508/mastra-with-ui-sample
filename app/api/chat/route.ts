@@ -1,4 +1,6 @@
 import { mastra } from "@/mastra"; // Adjust the import path if necessary
+import { toAISdkFormat } from "@mastra/ai-sdk";
+import { createUIMessageStreamResponse } from "ai";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,5 +16,10 @@ export async function POST(req: Request) {
   const result = await agent.stream(messages);
 
   // Return the result as a data stream response
-  return result.toDataStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toAISdkFormat(
+      result,
+      { from: "agent" },
+    ),
+  });
 }
