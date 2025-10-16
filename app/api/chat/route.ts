@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   const result = await agent.stream(messages);
 
   // Return the result as a data stream response
+  // Workaround: https://discord.com/channels/1309558646228779139/1413241662091694100/1425928259513749554
   return createUIMessageStreamResponse({
     stream: toAISdkFormat(
       result,
