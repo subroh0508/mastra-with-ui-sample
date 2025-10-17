@@ -48,11 +48,9 @@ export const municipalityTool = createTool({
       }
     });
 
-    const json = await geocodingResponse.json();
-    const geocodingData = json as NavitimeGeocodingResponse;
+    const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
 
     if (!geocodingData.items?.[0]) {
-      console.log(json);
       throw new Error(`Location '${context.location}' not found`);
     }
 
