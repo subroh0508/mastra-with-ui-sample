@@ -2,7 +2,7 @@ import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
 const locationInfoSchema = z.object({
-  name: z.string(),
+  addressText: z.string(),
   addressLevel: z.string(),
   latitude: z.number(),
   longitude: z.number(),
@@ -74,7 +74,7 @@ const geocodeLocation = createStep({
     const addressLevel = item.details[item.details.length - 1]?.level || '0';
 
     return {
-      name: item.name,
+      addressText: item.name,
       addressLevel,
       latitude: item.coord.lat,
       longitude: item.coord.lon,
@@ -92,7 +92,7 @@ const fetchWeather = createStep({
       throw new Error('Input data not found');
     }
 
-    const { latitude, longitude, name } = inputData;
+    const { latitude, longitude, addressText } = inputData;
 
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=precipitation,weathercode&timezone=auto,&hourly=precipitation_probability,temperature_2m`;
     const response = await fetch(weatherUrl);
@@ -117,7 +117,7 @@ const fetchWeather = createStep({
         (acc, curr) => Math.max(acc, curr),
         0,
       ),
-      location: name,
+      location: addressText,
     };
 
     return forecast;
