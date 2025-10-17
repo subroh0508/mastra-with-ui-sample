@@ -1,18 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-interface NavitimeGeocodingResponse {
-  items: {
-    code: string;
-    name: string;
-    postal_code?: string;
-    coord: {
-      lat: number;
-      lon: number;
-    };
-    details?: any;
-  }[];
-}
 interface WeatherResponse {
   current: {
     time: string;
@@ -27,9 +15,11 @@ interface WeatherResponse {
 
 export const weatherTool = createTool({
   id: 'get-weather',
-  description: '指定された都市の現在の天気を取得します',
+  description: '緯度経度から現在の天気を取得します',
   inputSchema: z.object({
-    location: z.string().describe('都市の名前（例: 東京、松江市）'),
+    latitude: z.number().describe('緯度'),
+    longitude: z.number().describe('経度'),
+    location: z.string().optional().describe('場所名（表示用）'),
   }),
   outputSchema: z.object({
     temperature: z.number(),
@@ -38,32 +28,14 @@ export const weatherTool = createTool({
     windSpeed: z.number(),
     windGust: z.number(),
     conditions: z.string(),
-    location: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
+    location: z.string().optional(),
   }),
   execute: async ({ context }) => {
-    return await getWeather(context.location);
+    return await getWeather(context.latitude, context.longitude, context.location);
   },
 });
 
-const getWeather = async (location: string) => {
-  const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(location)}&datum=wgs84&coord_unit=degree`;
-  const geocodingResponse = await fetch(geocodingUrl, {
-    headers: {
-      'x-rapidapi-key': process.env.NAVITIME_API_KEY || '',
-      'x-rapidapi-host': 'navitime-geocoding.p.rapidapi.com'
-    }
-  });
-
-  const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
-
-  if (!geocodingData.items?.[0]) {
-    throw new Error(`Location '${location}' not found`);
-  }
-
-  const { coord: { lat: latitude, lon: longitude }, name } = geocodingData.items[0];
-
+const getWeather = async (latitude: number, longitude: number, location?: string) => {
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
 
   const response = await fetch(weatherUrl);
@@ -76,42 +48,40 @@ const getWeather = async (location: string) => {
     windSpeed: data.current.wind_speed_10m,
     windGust: data.current.wind_gusts_10m,
     conditions: getWeatherCondition(data.current.weather_code),
-    location: name,
-    latitude,
-    longitude,
+    location,
   };
 };
 
 function getWeatherCondition(code: number): string {
   const conditions: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Moderate drizzle',
-    55: 'Dense drizzle',
-    56: 'Light freezing drizzle',
-    57: 'Dense freezing drizzle',
-    61: 'Slight rain',
-    63: 'Moderate rain',
-    65: 'Heavy rain',
-    66: 'Light freezing rain',
-    67: 'Heavy freezing rain',
-    71: 'Slight snow fall',
-    73: 'Moderate snow fall',
-    75: 'Heavy snow fall',
-    77: 'Snow grains',
-    80: 'Slight rain showers',
-    81: 'Moderate rain showers',
-    82: 'Violent rain showers',
-    85: 'Slight snow showers',
-    86: 'Heavy snow showers',
-    95: 'Thunderstorm',
-    96: 'Thunderstorm with slight hail',
-    99: 'Thunderstorm with heavy hail',
+    0: '快晴',
+    1: '晴れ',
+    2: '一部曇り',
+    3: '曇り',
+    45: '霧',
+    48: '霧氷',
+    51: '小雨',
+    53: '雨',
+    55: '強い雨',
+    56: '凍る小雨',
+    57: '凍る強い雨',
+    61: 'やや弱い雨',
+    63: '中程度の雨',
+    65: '大雨',
+    66: '凍る弱い雨',
+    67: '凍る大雨',
+    71: '小雪',
+    73: '雪',
+    75: '大雪',
+    77: '霰',
+    80: 'にわか雨（弱）',
+    81: 'にわか雨（中）',
+    82: 'にわか雨（強）',
+    85: 'にわか雪（弱）',
+    86: 'にわか雪（強）',
+    95: '雷雨',
+    96: '雷雨とやや強い雹',
+    99: '雷雨と大粒の雹',
   };
-  return conditions[code] || 'Unknown';
+  return conditions[code] || '不明';
 }

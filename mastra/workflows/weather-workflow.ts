@@ -1,6 +1,13 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
+const locationInfoSchema = z.object({
+  name: z.string(),
+  addressLevel: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
 const forecastSchema = z.object({
   date: z.string(),
   maxTemp: z.number(),
@@ -32,19 +39,19 @@ function getWeatherCondition(code: number): string {
   return conditions[code] || '不明';
 }
 
-const fetchWeather = createStep({
-  id: 'fetch-weather',
-  description: '指定された都市の天気予報を取得します',
+const geocodeLocation = createStep({
+  id: 'geocode-location',
+  description: '都市名から住所情報と緯度経度を取得します',
   inputSchema: z.object({
     city: z.string().describe('天気を取得する都市'),
   }),
-  outputSchema: forecastSchema,
+  outputSchema: locationInfoSchema,
   execute: async ({ inputData }) => {
     if (!inputData) {
       throw new Error('Input data not found');
     }
 
-    const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(inputData.city)}&lang=ja`;
+    const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(inputData.city)}&lang=ja&datum=wgs84&coord_unit=degree`;
     const geocodingResponse = await fetch(geocodingUrl, {
       headers: {
         'x-rapidapi-key': process.env.NAVITIME_API_KEY || '',
@@ -52,14 +59,40 @@ const fetchWeather = createStep({
       }
     });
     const geocodingData = (await geocodingResponse.json()) as {
-      items: { coord: { lat: number; lon: number }; name: string }[];
+      items: Array<{
+        name: string;
+        coord: { lat: number; lon: number };
+        details: Array<{ level: string }>;
+      }>;
     };
 
     if (!geocodingData.items?.[0]) {
       throw new Error(`Location '${inputData.city}' not found`);
     }
 
-    const { coord: { lat: latitude, lon: longitude }, name } = geocodingData.items[0];
+    const item = geocodingData.items[0];
+    const addressLevel = item.details[item.details.length - 1]?.level || '0';
+
+    return {
+      name: item.name,
+      addressLevel,
+      latitude: item.coord.lat,
+      longitude: item.coord.lon,
+    };
+  },
+});
+
+const fetchWeather = createStep({
+  id: 'fetch-weather',
+  description: '緯度経度から天気予報を取得します',
+  inputSchema: locationInfoSchema,
+  outputSchema: forecastSchema,
+  execute: async ({ inputData }) => {
+    if (!inputData) {
+      throw new Error('Input data not found');
+    }
+
+    const { latitude, longitude, name } = inputData;
 
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=precipitation,weathercode&timezone=auto,&hourly=precipitation_probability,temperature_2m`;
     const response = await fetch(weatherUrl);
@@ -181,6 +214,7 @@ const weatherWorkflow = createWorkflow({
     activities: z.string(),
   }),
 })
+  .then(geocodeLocation)
   .then(fetchWeather)
   .then(planActivities);
 
