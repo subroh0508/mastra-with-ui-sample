@@ -1,11 +1,16 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-interface GeocodingResponse {
-  results: {
-    latitude: number;
-    longitude: number;
+interface NavitimeGeocodingResponse {
+  items: {
+    code: string;
     name: string;
+    postal_code?: string;
+    coord: {
+      lat: number;
+      lon: number;
+    };
+    details?: any;
   }[];
 }
 interface WeatherResponse {
@@ -43,15 +48,20 @@ export const weatherTool = createTool({
 });
 
 const getWeather = async (location: string) => {
-  const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`;
-  const geocodingResponse = await fetch(geocodingUrl);
-  const geocodingData = (await geocodingResponse.json()) as GeocodingResponse;
+  const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(location)}&lang=ja`;
+  const geocodingResponse = await fetch(geocodingUrl, {
+    headers: {
+      'x-rapidapi-key': process.env.NAVITIME_API_KEY || '',
+      'x-rapidapi-host': 'navitime-geocoding.p.rapidapi.com'
+    }
+  });
+  const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
 
-  if (!geocodingData.results?.[0]) {
+  if (!geocodingData.items?.[0]) {
     throw new Error(`Location '${location}' not found`);
   }
 
-  const { latitude, longitude, name } = geocodingData.results[0];
+  const { coord: { lat: latitude, lon: longitude }, name } = geocodingData.items[0];
 
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
 

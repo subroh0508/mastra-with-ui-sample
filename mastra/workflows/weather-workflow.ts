@@ -44,17 +44,22 @@ const fetchWeather = createStep({
       throw new Error('Input data not found');
     }
 
-    const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputData.city)}&count=1`;
-    const geocodingResponse = await fetch(geocodingUrl);
+    const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(inputData.city)}&lang=ja`;
+    const geocodingResponse = await fetch(geocodingUrl, {
+      headers: {
+        'x-rapidapi-key': process.env.NAVITIME_API_KEY || '',
+        'x-rapidapi-host': 'navitime-geocoding.p.rapidapi.com'
+      }
+    });
     const geocodingData = (await geocodingResponse.json()) as {
-      results: { latitude: number; longitude: number; name: string }[];
+      items: { coord: { lat: number; lon: number }; name: string }[];
     };
 
-    if (!geocodingData.results?.[0]) {
+    if (!geocodingData.items?.[0]) {
       throw new Error(`Location '${inputData.city}' not found`);
     }
 
-    const { latitude, longitude, name } = geocodingData.results[0];
+    const { coord: { lat: latitude, lon: longitude }, name } = geocodingData.items[0];
 
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=precipitation,weathercode&timezone=auto,&hourly=precipitation_probability,temperature_2m`;
     const response = await fetch(weatherUrl);
