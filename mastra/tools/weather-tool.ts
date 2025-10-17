@@ -27,9 +27,9 @@ interface WeatherResponse {
 
 export const weatherTool = createTool({
   id: 'get-weather',
-  description: 'Get current weather for a location',
+  description: '指定された都市の現在の天気を取得します',
   inputSchema: z.object({
-    location: z.string().describe('City name'),
+    location: z.string().describe('都市の名前（例: 東京、松江市）'),
   }),
   outputSchema: z.object({
     temperature: z.number(),
@@ -48,13 +48,14 @@ export const weatherTool = createTool({
 });
 
 const getWeather = async (location: string) => {
-  const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(location)}&lang=ja`;
+  const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(location)}&datum=wgs84&coord_unit=degree`;
   const geocodingResponse = await fetch(geocodingUrl, {
     headers: {
       'x-rapidapi-key': process.env.NAVITIME_API_KEY || '',
       'x-rapidapi-host': 'navitime-geocoding.p.rapidapi.com'
     }
   });
+
   const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
 
   if (!geocodingData.items?.[0]) {
