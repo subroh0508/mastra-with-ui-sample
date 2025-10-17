@@ -34,6 +34,8 @@ export const weatherTool = createTool({
     windGust: z.number(),
     conditions: z.string(),
     location: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
   }),
   execute: async ({ context }) => {
     return await getWeather(context.location);
@@ -64,6 +66,8 @@ const getWeather = async (location: string) => {
     windGust: data.current.wind_gusts_10m,
     conditions: getWeatherCondition(data.current.weather_code),
     location: name,
+    latitude,
+    longitude,
   };
 };
 
