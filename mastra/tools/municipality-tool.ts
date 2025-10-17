@@ -33,10 +33,10 @@ export const municipalityTool = createTool({
     location: z.string().describe('場所の名前（例: 東京、松江市）'),
   }),
   outputSchema: z.object({
-    addressText: z.string().describe('住所テキスト（例: 東京都千代田区、島根県松江市）'),
-    addressLevel: z.string().describe('住所レベル'),
-    latitude: z.number().describe('緯度'),
-    longitude: z.number().describe('経度'),
+    addressText: z.string(),
+    addressLevel: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
   }),
   execute: async ({ context }) => {
     const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(context.location)}&datum=wgs84&coord_unit=degree`;
@@ -48,9 +48,11 @@ export const municipalityTool = createTool({
       }
     });
 
-    const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
+    const json = await geocodingResponse.json();
+    const geocodingData = json as NavitimeGeocodingResponse;
 
     if (!geocodingData.items?.[0]) {
+      console.log(json);
       throw new Error(`Location '${context.location}' not found`);
     }
 
