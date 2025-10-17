@@ -39,7 +39,7 @@ export const municipalityTool = createTool({
     longitude: z.number(),
   }),
   execute: async ({ context }) => {
-    const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(context.location)}&lang=ja&datum=wgs84&coord_unit=degree`;
+    const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(context.location)}&datum=wgs84&coord_unit=degree`;
 
     const geocodingResponse = await fetch(geocodingUrl, {
       headers: {

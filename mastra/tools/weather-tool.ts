@@ -19,7 +19,7 @@ export const weatherTool = createTool({
   inputSchema: z.object({
     latitude: z.number().describe('緯度'),
     longitude: z.number().describe('経度'),
-    location: z.string().optional().describe('場所名（表示用）'),
+    municipality: z.string().optional().describe('市区町村名（表示用）'),
   }),
   outputSchema: z.object({
     temperature: z.number(),
@@ -28,14 +28,14 @@ export const weatherTool = createTool({
     windSpeed: z.number(),
     windGust: z.number(),
     conditions: z.string(),
-    location: z.string().optional(),
+    municipality: z.string().optional(),
   }),
   execute: async ({ context }) => {
-    return await getWeather(context.latitude, context.longitude, context.location);
+    return await getWeather(context.latitude, context.longitude, context.municipality);
   },
 });
 
-const getWeather = async (latitude: number, longitude: number, location?: string) => {
+const getWeather = async (latitude: number, longitude: number, municipality?: string) => {
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
 
   const response = await fetch(weatherUrl);
@@ -48,7 +48,7 @@ const getWeather = async (latitude: number, longitude: number, location?: string
     windSpeed: data.current.wind_speed_10m,
     windGust: data.current.wind_gusts_10m,
     conditions: getWeatherCondition(data.current.weather_code),
-    location,
+    municipality,
   };
 };
 
