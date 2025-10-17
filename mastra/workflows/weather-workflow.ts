@@ -12,31 +12,31 @@ const forecastSchema = z.object({
 
 function getWeatherCondition(code: number): string {
   const conditions: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Moderate drizzle',
-    55: 'Dense drizzle',
-    61: 'Slight rain',
-    63: 'Moderate rain',
-    65: 'Heavy rain',
-    71: 'Slight snow fall',
-    73: 'Moderate snow fall',
-    75: 'Heavy snow fall',
-    95: 'Thunderstorm',
+    0: '快晴',
+    1: '晴れ',
+    2: '一部曇り',
+    3: '曇り',
+    45: '霧',
+    48: '霧氷',
+    51: '小雨',
+    53: '雨',
+    55: '強い雨',
+    61: 'やや弱い雨',
+    63: '中程度の雨',
+    65: '大雨',
+    71: '小雪',
+    73: '雪',
+    75: '大雪',
+    95: '雷雨',
   };
-  return conditions[code] || 'Unknown';
+  return conditions[code] || '不明';
 }
 
 const fetchWeather = createStep({
   id: 'fetch-weather',
-  description: 'Fetches weather forecast for a given city',
+  description: '指定された都市の天気予報を取得します',
   inputSchema: z.object({
-    city: z.string().describe('The city to get the weather for'),
+    city: z.string().describe('天気を取得する都市'),
   }),
   outputSchema: forecastSchema,
   execute: async ({ inputData }) => {
@@ -88,7 +88,7 @@ const fetchWeather = createStep({
 
 const planActivities = createStep({
   id: 'plan-activities',
-  description: 'Suggests activities based on weather conditions',
+  description: '天気条件に基づいてアクティビティを提案します',
   inputSchema: forecastSchema,
   outputSchema: z.object({
     activities: z.string(),
@@ -105,47 +105,47 @@ const planActivities = createStep({
       throw new Error('Weather agent not found');
     }
 
-    const prompt = `Based on the following weather forecast for ${forecast.location}, suggest appropriate activities:
+    const prompt = `${forecast.location}の以下の天気予報に基づいて、適切なアクティビティを提案してください:
       ${JSON.stringify(forecast, null, 2)}
-      For each day in the forecast, structure your response exactly as follows:
+      予報の各日について、以下の形式で正確に回答してください:
 
-      📅 [Day, Month Date, Year]
+      📅 [曜日、月 日、年]
       ═══════════════════════════
 
-      🌡️ WEATHER SUMMARY
-      • Conditions: [brief description]
-      • Temperature: [X°C/Y°F to A°C/B°F]
-      • Precipitation: [X% chance]
+      🌡️ 天気の概要
+      • 天候: [簡単な説明]
+      • 気温: [X°C/Y°F から A°C/B°F]
+      • 降水確率: [X%]
 
-      🌅 MORNING ACTIVITIES
-      Outdoor:
-      • [Activity Name] - [Brief description including specific location/route]
-        Best timing: [specific time range]
-        Note: [relevant weather consideration]
+      🌅 午前中のアクティビティ
+      屋外:
+      • [アクティビティ名] - [具体的な場所やルートを含む簡単な説明]
+        最適な時間: [具体的な時間帯]
+        注意事項: [関連する天気の考慮事項]
 
-      🌞 AFTERNOON ACTIVITIES
-      Outdoor:
-      • [Activity Name] - [Brief description including specific location/route]
-        Best timing: [specific time range]
-        Note: [relevant weather consideration]
+      🌞 午後のアクティビティ
+      屋外:
+      • [アクティビティ名] - [具体的な場所やルートを含む簡単な説明]
+        最適な時間: [具体的な時間帯]
+        注意事項: [関連する天気の考慮事項]
 
-      🏠 INDOOR ALTERNATIVES
-      • [Activity Name] - [Brief description including specific venue]
-        Ideal for: [weather condition that would trigger this alternative]
+      🏠 屋内の代替案
+      • [アクティビティ名] - [具体的な施設を含む簡単な説明]
+        理想的な条件: [この代替案が適している天候条件]
 
-      ⚠️ SPECIAL CONSIDERATIONS
-      • [Any relevant weather warnings, UV index, wind conditions, etc.]
+      ⚠️ 特別な注意事項
+      • [関連する天気警報、UV指数、風の状況など]
 
-      Guidelines:
-      - Suggest 2-3 time-specific outdoor activities per day
-      - Include 1-2 indoor backup options
-      - For precipitation >50%, lead with indoor activities
-      - All activities must be specific to the location
-      - Include specific venues, trails, or locations
-      - Consider activity intensity based on temperature
-      - Keep descriptions concise but informative
+      ガイドライン:
+      - 1日あたり2〜3つの時間指定の屋外アクティビティを提案してください
+      - 1〜2つの屋内の予備オプションを含めてください
+      - 降水確率が50%を超える場合は、屋内アクティビティを優先してください
+      - すべてのアクティビティは、その場所に特有のものでなければなりません
+      - 具体的な施設、トレイル、または場所を含めてください
+      - 気温に基づいてアクティビティの強度を考慮してください
+      - 説明は簡潔かつ有益なものにしてください
 
-      Maintain this exact formatting for consistency, using the emoji and section headers as shown.`;
+      一貫性を保つため、絵文字とセクションヘッダーを示されたとおりに使用して、この正確な形式を維持してください。`;
 
     const response = await agent.stream([
       {
@@ -170,7 +170,7 @@ const planActivities = createStep({
 const weatherWorkflow = createWorkflow({
   id: 'weather-workflow',
   inputSchema: z.object({
-    city: z.string().describe('The city to get the weather for'),
+    city: z.string().describe('天気を取得する都市'),
   }),
   outputSchema: z.object({
     activities: z.string(),
