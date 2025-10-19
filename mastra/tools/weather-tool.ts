@@ -1,17 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
-interface NavitimeGeocodingResponse {
-  items: {
-    code: string;
-    name: string;
-    coord: {
-      lat: number;
-      lon: number;
-    };
-    is_end: boolean;
-  }[];
-}
 interface WeatherResponse {
   current: {
     time: string;
@@ -26,9 +15,11 @@ interface WeatherResponse {
 
 export const weatherTool = createTool({
   id: 'get-weather',
-  description: '指定された地点の現在の天気を取得する',
+  description: '緯度・経度から現在の天気を取得する',
   inputSchema: z.object({
-    location: z.string().describe('都市名'),
+    latitude: z.number().describe('緯度'),
+    longitude: z.number().describe('経度'),
+    address: z.string().describe('住所テキスト（表示用）'),
   }),
   outputSchema: z.object({
     temperature: z.number().describe('気温（℃）'),
@@ -37,35 +28,14 @@ export const weatherTool = createTool({
     windSpeed: z.number().describe('風速（m/s）'),
     windGust: z.number().describe('最大瞬間風速（m/s）'),
     conditions: z.string().describe('天気の状態'),
-    location: z.string().describe('地点名'),
+    address: z.string().describe('住所テキスト'),
   }),
   execute: async ({ context }) => {
-    return await getWeather(context.location);
+    return await getWeather(context.latitude, context.longitude, context.address);
   },
 });
 
-const getWeather = async (location: string) => {
-  const rapidApiKey = process.env.RAPIDAPI_KEY;
-  if (!rapidApiKey) {
-    throw new Error('RAPIDAPI_KEY environment variable is not set');
-  }
-
-  const geocodingUrl = `https://navitime-geocoding.p.rapidapi.com/address/autocomplete?word=${encodeURIComponent(location)}`;
-  const geocodingResponse = await fetch(geocodingUrl, {
-    headers: {
-      'x-rapidapi-host': 'navitime-geocoding.p.rapidapi.com',
-      'x-rapidapi-key': rapidApiKey,
-    },
-  });
-
-  const geocodingData = (await geocodingResponse.json()) as NavitimeGeocodingResponse;
-
-  if (!geocodingData.items?.[0]) {
-    throw new Error(`Location '${location}' not found`);
-  }
-
-  const { coord: { lat: latitude, lon: longitude }, name } = geocodingData.items[0];
-
+const getWeather = async (latitude: number, longitude: number, address: string) => {
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
 
   const response = await fetch(weatherUrl);
@@ -78,7 +48,7 @@ const getWeather = async (location: string) => {
     windSpeed: data.current.wind_speed_10m,
     windGust: data.current.wind_gusts_10m,
     conditions: getWeatherCondition(data.current.weather_code),
-    location: name,
+    address,
   };
 };
 
