@@ -23,7 +23,7 @@ export const municipalityTool = createTool({
   id: 'get-municipality',
   description: '曖昧な地点名から緯度・経度・住所情報を取得する',
   inputSchema: z.object({
-    location: z.string().describe('曖昧な地点名（都市名、住所など）'),
+    location: z.string().describe('住所文字列（例: 東京、東京都、東京都千代田区など）'),
   }),
   outputSchema: z.object({
     latitude: z.number().describe('緯度'),
